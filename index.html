@@ -30,6 +30,22 @@ canvas { display:block; touch-action:none; }
   background:#444;
   color:white;
   }
+   #timeline {
+  position:absolute;
+  top:10px;
+  left:10%;
+  width:80%;
+  height:6px;
+  background:#333;
+  border-radius:10px;
+  overflow:hidden;
+}
+
+#progress {
+  height:100%;
+  width:0%;
+  background:lime;
+}
 </style>
 </head>
 <body>
@@ -37,6 +53,9 @@ canvas { display:block; touch-action:none; }
 <canvas id="game"></canvas>
 <button id="rotateBtn">Orientation: vertical</button>
   <button id="skipBtn">⏩ Skip</button>
+  <div id="timeline">
+  <div id="progress"></div>
+  </div>
 
 <script>
 const canvas = document.getElementById("game");
@@ -75,6 +94,19 @@ document.getElementById("rotateBtn").onclick = () => {
   currentOrientation = orientations[orientationIndex];
   document.getElementById("rotateBtn").innerText =
     "Orientation: " + currentOrientation;
+  const skipBtn = document.getElementById("skipBtn");
+
+skipBtn.onpointerdown = () => {
+  speedMultiplier = 4;
+};
+
+skipBtn.onpointerup = () => {
+  speedMultiplier = 1;
+};
+
+skipBtn.onpointerleave = () => {
+  speedMultiplier = 1;
+};
 };
   const skipBtn = document.getElementById("skipBtn");
 
