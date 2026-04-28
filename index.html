@@ -47,6 +47,7 @@ let highScore = localStorage.getItem("qu33phHigh") || 0;
 
 let startTime = Date.now();
 let suddenDeath = false;
+  let explosions = [];
 
 const ROUND_TIME = 30;
 const TOTAL_TIME = 45;
@@ -262,6 +263,13 @@ function update(){
   });
 
   tryAdvanceRound();
+  explosions.forEach(e => {
+  e.radius += 4;   // expand
+  e.life--;
+});
+
+// remove dead ones
+explosions = explosions.filter(e => e.life > 0);
 }
 
 // =====================
@@ -337,7 +345,17 @@ function draw(){
     ctx.fillText("🪑", -15, 10);
     ctx.restore();
   }
+  explosions.forEach(e => {
+  ctx.beginPath();
+  ctx.arc(e.x, e.y, e.radius, 0, Math.PI * 2);
 
+  ctx.strokeStyle = "white";
+  ctx.lineWidth = 4;
+  ctx.globalAlpha = e.life / 20;
+
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+});
   // MARKERS
   markers.forEach(m=>{
     if(m.fallen) return;
@@ -411,7 +429,15 @@ function calculateScore(){
   if(touching(g,r)) s+=0.5;
   if(touching(r,b)) s+=2;
   if(touching(g,b)) s+=2;
-
+if(touching(g,r) && touching(r,b) && touching(g,b)){
+  // 💥 CREATE RING EXPLOSION
+  explosions.push({
+    x: (g.x + r.x + b.x) / 3,
+    y: (g.y + r.y + b.y) / 3,
+    radius: 10,
+    life: 20
+  });
+}
   return suddenDeath ? s*2 : s;
 }
 
