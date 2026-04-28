@@ -72,7 +72,9 @@ const lengths = [60,60,90];
 function touching(a,b){
   return Math.hypot(a.x-b.x,a.y-b.y) < 45;
 }
-
+function isTouchingAny(marker){
+  return markers.some(m => m !== marker && !m.fallen && touching(marker, m));
+}
 // =====================
 // THROW
 // =====================
@@ -344,9 +346,15 @@ function draw(){
     ctx.translate(m.x,m.y);
     ctx.rotate(m.rotation);
 
-    ctx.fillStyle=m.color;
-    ctx.shadowColor="red";
-    ctx.shadowBlur=15;
+    ctx.fillStyle = m.color;
+
+if(isTouchingAny(m)){
+  ctx.shadowColor = "lime";   // touching = green
+  ctx.shadowBlur = 25;
+} else {
+  ctx.shadowColor = "red";    // not touching = red
+  ctx.shadowBlur = 15;
+}
 
     ctx.fillRect(-10,-m.length/2,20,m.length);
 
