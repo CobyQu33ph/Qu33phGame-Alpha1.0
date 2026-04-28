@@ -81,6 +81,8 @@ let highScore = localStorage.getItem("qu33phHigh") || 0;
 let startTime = Date.now();
 let suddenDeath = false;
 let explosions = [];
+let scorePopups = [];
+let lastRoundScore = 0;
 
 const ROUND_TIME = 30;
 const TOTAL_TIME = 45;
@@ -201,8 +203,19 @@ canvas.addEventListener("pointerup", ()=>{
 function tryAdvanceRound(){
   if(gameState !== "playing") return;
 
-  if(current === 3 && markers.every(m=>m.stopped || m.fallen)){
-    totalScore += calculateScore();
+  if(current === 3 && markers.every(m => m.stopped || m.fallen)){
+
+    let roundScore = calculateScore();
+    totalScore += roundScore;
+
+    // 🔥 popup for ALL modes
+    scorePopups.push({
+      x: canvas.width / 2,
+      y: canvas.height / 2,
+      text: "+" + roundScore,
+      life: 40
+    });
+
     markers = [];
     current = 0;
   }
@@ -319,6 +332,14 @@ function update(){
   });
 
   explosions = explosions.filter(e => e.life > 0);
+  // 🔥 animate score popups
+scorePopups.forEach(p => {
+  p.y -= 1;     // move upward
+  p.life--;     // fade out over time
+});
+
+// remove expired popups
+scorePopups = scorePopups.filter(p => p.life > 0);
 }
 
 // DRAW (ONLY EXPLOSION TEXT MODIFIED)
@@ -412,6 +433,19 @@ ctx.textBaseline = "top";
     ctx.textBaseline = "middle";
     ctx.fillText(e.text || "QU33PH", e.x, e.y);
     ctx.globalAlpha = 1;
+    scorePopups.forEach(p => {
+  ctx.save();
+
+  ctx.globalAlpha = p.life / 40;
+  ctx.fillStyle = "white";
+  ctx.font = "bold 30px Arial";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+
+  ctx.fillText(p.text, p.x, p.y);
+
+  ctx.restore();
+});
   });
 
   // MARKERS (unchanged)
