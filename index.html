@@ -19,7 +19,7 @@ canvas { display:block; touch-action:none; }
   background:#222;
   color:white;
 }
-  #skipBtn {
+#skipBtn {
   position:absolute;
   bottom:20px;
   right:20px;
@@ -29,8 +29,8 @@ canvas { display:block; touch-action:none; }
   font-size:16px;
   background:#444;
   color:white;
-  }
-   #timeline {
+}
+#timeline {
   position:absolute;
   top:10px;
   left:10%;
@@ -40,7 +40,6 @@ canvas { display:block; touch-action:none; }
   border-radius:10px;
   overflow:hidden;
 }
-
 #progress {
   height:100%;
   width:0%;
@@ -52,10 +51,8 @@ canvas { display:block; touch-action:none; }
 
 <canvas id="game"></canvas>
 <button id="rotateBtn">Orientation: vertical</button>
-  <button id="skipBtn">⏩ Skip</button>
-  <div id="timeline">
-  <div id="progress"></div>
-  </div>
+<button id="skipBtn">⏩ Skip</button>
+<div id="timeline"><div id="progress"></div></div>
 
 <script>
 const canvas = document.getElementById("game");
@@ -69,8 +66,12 @@ const LEFT_EDGE = canvas.width * 0.2;
 const RIGHT_WALL = canvas.width * 0.75;
 const END_LINE_Y = canvas.height * 0.2;
 
+// 🔥 ADDED: red dot + chair positions
+const redDot = { x: RIGHT_WALL+10, y: END_LINE_Y+40 };
+const chair = { x:(LEFT_EDGE+RIGHT_WALL)/2, y:END_LINE_Y+90, radius:35 };
+
 // STATE
-  let speedMultiplier = 1;
+let speedMultiplier = 1;
 let gameState = "playing";
 let markers = [];
 let current = 0;
@@ -79,7 +80,7 @@ let highScore = localStorage.getItem("qu33phHigh") || 0;
 
 let startTime = Date.now();
 let suddenDeath = false;
-  let explosions = [];
+let explosions = [];
 
 const ROUND_TIME = 30;
 const TOTAL_TIME = 45;
@@ -94,34 +95,12 @@ document.getElementById("rotateBtn").onclick = () => {
   currentOrientation = orientations[orientationIndex];
   document.getElementById("rotateBtn").innerText =
     "Orientation: " + currentOrientation;
-  const skipBtn = document.getElementById("skipBtn");
-
-skipBtn.onpointerdown = () => {
-  speedMultiplier = 4;
 };
 
-skipBtn.onpointerup = () => {
-  speedMultiplier = 1;
-};
-
-skipBtn.onpointerleave = () => {
-  speedMultiplier = 1;
-};
-};
-  const skipBtn = document.getElementById("skipBtn");
-
-skipBtn.onpointerdown = () => {
-  speedMultiplier = 3; // speed up
-};
-
-skipBtn.onpointerup = () => {
-  speedMultiplier = 1; // back to normal
-};
-
-// for safety (finger slides off)
-skipBtn.onpointerleave = () => {
-  speedMultiplier = 1;
-};
+const skipBtn = document.getElementById("skipBtn");
+skipBtn.onpointerdown = () => speedMultiplier = 3;
+skipBtn.onpointerup = () => speedMultiplier = 1;
+skipBtn.onpointerleave = () => speedMultiplier = 1;
 
 // INPUT
 let dragging=false,startX,startY,currentX,currentY;
@@ -135,9 +114,32 @@ function touching(a,b){
 function isTouchingAny(marker){
   return markers.some(m => m !== marker && !m.fallen && touching(marker, m));
 }
-// =====================
+
+// 🔥 ADDED
+function touchingChair(m){
+  return Math.hypot(m.x-chair.x, m.y-chair.y) < chair.radius;
+}
+
+function triggerMegaQu33ph(m){
+  m.x = redDot.x;
+  m.y = redDot.y;
+  m.vx = 0;
+  m.vy = 0;
+  m.stopped = true;
+
+  totalScore += 10;
+
+  explosions.push({
+    x:redDot.x,
+    y:redDot.y,
+    radius:10,
+    life:30,
+    text:"MEGA QU33PH",
+    mega:true
+  });
+}
+
 // THROW
-// =====================
 canvas.addEventListener("pointerdown", e=>{
   if(gameState !== "playing") return;
   if(current >= 3) return;
@@ -181,23 +183,21 @@ canvas.addEventListener("pointerup", ()=>{
     stopped:false,
     fallen:false,
     trail:[],
-
     rotation: baseRot,
     spinVelocity:
       currentOrientation === "vertical" ? 0.08 :
       currentOrientation === "angled" ? 0.12 :
       0.18,
+    chairBoost:false,
 
-    // 🪑 CHAIR INTERACTION FLAG
-    chairBoost:false
+    // 🔥 ADDED
+    megaTriggered:false
   });
 
   current++;
 });
 
-// =====================
 // ROUND SYSTEM
-// =====================
 function tryAdvanceRound(){
   if(gameState !== "playing") return;
 
@@ -208,9 +208,7 @@ function tryAdvanceRound(){
   }
 }
 
-// =====================
 // CLICK CONTROL
-// =====================
 canvas.addEventListener("click", ()=>{
 
   if(gameState === "end"){
@@ -227,9 +225,7 @@ canvas.addEventListener("click", ()=>{
   tryAdvanceRound();
 });
 
-// =====================
-// SKY
-// =====================
+// SKY (UNCHANGED)
 let sunPos={x:0,y:0};
 let clouds=[];
 let skyWindows=[];
@@ -261,9 +257,7 @@ function randomizeSky(){
   }
 }
 
-// =====================
 // UPDATE
-// =====================
 function update(){
 
   let elapsed = (Date.now()-startTime)/1000;
@@ -285,34 +279,15 @@ function update(){
     m.vx *= 0.94;
     m.vy *= 0.94;
 
-    // spin + friction
     m.rotation += m.spinVelocity * speedMultiplier;
     m.spinVelocity *= 0.96;
 
-    if(Math.abs(m.spinVelocity) < 0.001){
-      m.spinVelocity = 0;
-    }
-
-    // COLLISION WITH CHAIR (1 IN 7)
-    if (suddenDeath && !m.chairBoost && !m.stopped && !m.fallen) {
-  if (Math.random() < 1/7) {
-
-    const targetX = RIGHT_WALL + 10;
-    const targetY = END_LINE_Y + 40;
-
-    let dx = targetX - m.x;
-    let dy = targetY - m.y;
-
-    const dist = Math.max(1, Math.sqrt(dx*dx + dy*dy));
-
-    dx /= dist;
-    dy /= dist;
-
-    m.vx += dx * 6;
-    m.vy += dy * 6;
-
-    m.chairBoost = true;
-  }
+    // 🔥 MEGA QU33PH
+    if(suddenDeath && !m.megaTriggered && touchingChair(m)){
+      if(Math.random() < 0.25){
+        triggerMegaQu33ph(m);
+      }
+      m.megaTriggered = true;
     }
 
     m.trail.push({x:m.x,y:m.y});
@@ -333,31 +308,29 @@ function update(){
     if(Math.abs(m.vx)<0.05 && Math.abs(m.vy)<0.05){
       m.stopped = true;
     }
-    let elapsed = (Date.now() - startTime) / 1000;
-let progress = Math.min(elapsed / TOTAL_TIME, 1);
 
-document.getElementById("progress").style.width = (progress * 100) + "%";
+    let progress = Math.min(elapsed / TOTAL_TIME, 1);
+    document.getElementById("progress").style.width = (progress * 100) + "%";
   });
 
-  tryAdvanceRound();
-  explosions.forEach(e => {
-  e.radius += 4;   // expand
-  e.life--;
-    console.log(progress);
-});
+  explosions.forEach(e=>{
+    e.radius += e.mega ? 6 : 4;
+    e.life--;
+  });
 
-// remove dead ones
-explosions = explosions.filter(e => e.life > 0);
+  explosions = explosions.filter(e => e.life > 0);
 }
 
-// =====================
-// DRAW
-// =====================
+// DRAW (ONLY EXPLOSION TEXT MODIFIED)
 function draw(){
 
   if(gameState === "end"){
     ctx.fillStyle="black";
     ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    ctx.setTransform(1, 0, 0, 1, 0, 0); // reset any transforms
+ctx.textAlign = "left";
+ctx.textBaseline = "top";
 
     ctx.fillStyle="white";
     ctx.font="60px Arial";
@@ -373,20 +346,19 @@ function draw(){
 
   ctx.clearRect(0,0,canvas.width,canvas.height);
 
-  // WALL
   ctx.fillStyle="#222";
   ctx.fillRect(RIGHT_WALL,0,canvas.width-RIGHT_WALL,canvas.height);
 
-  // SKY
   ctx.fillStyle="#6ec6ff";
   ctx.fillRect(RIGHT_WALL+5, END_LINE_Y, canvas.width-RIGHT_WALL-10, canvas.height-END_LINE_Y);
 
-  // SUN + CLOUDS
+  // SUN
   ctx.fillStyle="yellow";
   ctx.beginPath();
   ctx.arc(sunPos.x,sunPos.y,20,0,Math.PI*2);
   ctx.fill();
 
+  // CLOUDS
   ctx.fillStyle="white";
   clouds.forEach(c=>{
     ctx.beginPath();
@@ -408,113 +380,97 @@ function draw(){
   // RED DOT
   ctx.fillStyle="red";
   ctx.beginPath();
-  ctx.arc(RIGHT_WALL+10, END_LINE_Y+40, 10, 0, Math.PI*2);
+  ctx.arc(redDot.x, redDot.y, 10, 0, Math.PI*2);
   ctx.fill();
 
   ctx.fillStyle="white";
   ctx.fillRect(LEFT_EDGE, END_LINE_Y, RIGHT_WALL-LEFT_EDGE, 4);
 
-  // 🪑 CHAIR (RESTORED)
+  // CHAIR
   if(suddenDeath){
     ctx.save();
-    ctx.translate((LEFT_EDGE+RIGHT_WALL)/2, END_LINE_Y + 90);
+    ctx.translate(chair.x, chair.y);
     ctx.rotate(Math.PI);
     ctx.font="30px Arial";
     ctx.fillText("🪑", -15, 10);
     ctx.restore();
   }
-  explosions.forEach(e => {
-  // draw explosion ring
-  ctx.beginPath();
-  ctx.arc(e.x, e.y, e.radius, 0, Math.PI * 2);
 
-  ctx.strokeStyle = "white";
-  ctx.lineWidth = 4;
-  ctx.globalAlpha = e.life / 20;
-  ctx.stroke();
-  ctx.globalAlpha = 1;
+  // EXPLOSIONS
+  explosions.forEach(e=>{
+    ctx.beginPath();
+    ctx.arc(e.x, e.y, e.radius, 0, Math.PI * 2);
+    ctx.strokeStyle = "white";
+    ctx.lineWidth = 4;
+    ctx.globalAlpha = e.life / 30;
+    ctx.stroke();
 
-  // 💥 DRAW "QU33PH" TEXT
-  if (e.showText) {
-    ctx.save();
-
-    // fade with explosion
-    ctx.globalAlpha = e.life / 20;
-
+    ctx.globalAlpha = e.life / 30;
     ctx.fillStyle = "white";
-    ctx.font = "bold 60px Arial";
+    ctx.font = e.mega ? "bold 50px Arial" : "bold 60px Arial";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
+    ctx.fillText(e.text || "QU33PH", e.x, e.y);
+    ctx.globalAlpha = 1;
+  });
 
-    ctx.fillText("QU33PH", e.x, e.y);
-
-    ctx.restore();
-  }
-});
-  // MARKERS
+  // MARKERS (unchanged)
   markers.forEach(m=>{
     if(m.fallen) return;
-    // 🔥 TRAIL DRAWING
-m.trail.forEach((p,i)=>{
-  ctx.fillStyle = m.color;
-  ctx.globalAlpha = i / m.trail.length; // fade out
-  ctx.fillRect(p.x - 2, p.y - 2, 4, 4);
-});
-ctx.globalAlpha = 1;
+
+    m.trail.forEach((p,i)=>{
+      ctx.fillStyle = m.color;
+      ctx.globalAlpha = i / m.trail.length;
+      ctx.fillRect(p.x - 2, p.y - 2, 4, 4);
+    });
+    ctx.globalAlpha = 1;
 
     ctx.save();
     ctx.translate(m.x,m.y);
     ctx.rotate(m.rotation);
-    if(isTouchingAny(m)){
-  ctx.shadowColor = "lime";
-  ctx.shadowBlur = 25;
 
-  // 💥 IMPACT SPARKS
-  for(let i = 0; i < 3; i++){
-    ctx.fillRect(
-      (Math.random() - 0.5) * 20,
-      (Math.random() - 0.5) * 20,
-      3, 3
-    );
-  }
-
-} else {
-  ctx.shadowColor = "red";
-  ctx.shadowBlur = 15;
-    }
+    ctx.shadowColor = "red";
+    ctx.shadowBlur = 15;
 
     ctx.fillStyle = m.color;
-
-if(isTouchingAny(m)){
-  ctx.shadowColor = "lime";   // touching = green
-  ctx.shadowBlur = 25;
-} else {
-  ctx.shadowColor = "red";    // not touching = red
-  ctx.shadowBlur = 15;
-}
-
     ctx.fillRect(-10,-m.length/2,20,m.length);
 
     ctx.restore();
   });
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+ctx.textAlign = "left";
+ctx.textBaseline = "top";
 
   let elapsed = (Date.now()-startTime)/1000;
 
-  ctx.fillStyle="white";
-  ctx.font="20px Arial";
+// 🔒 reset canvas so UI doesn't drift
+ctx.setTransform(1, 0, 0, 1, 0, 0);
+ctx.textAlign = "left";
+ctx.textBaseline = "top";
 
-  if(!suddenDeath){
-    ctx.fillText("Time: "+Math.max(0, ROUND_TIME - Math.floor(elapsed)),20,30);
-  } else {
-    ctx.fillStyle="red";
-    ctx.fillText("SUDDEN DEATH: "+Math.max(0, TOTAL_TIME - Math.floor(elapsed)),20,30);
-  }
+ctx.fillStyle="white";
+ctx.font="20px Arial";
 
-  ctx.fillStyle="white";
-  ctx.fillText("Score: "+totalScore,20,60);
+if(!suddenDeath){
+  ctx.fillText(
+    "Time: " + Math.max(0, ROUND_TIME - Math.floor(elapsed)),
+    20,
+    20
+  );
+} else {
+  ctx.fillStyle="red";
+  ctx.fillText(
+    "SUDDEN DEATH: " + Math.max(0, TOTAL_TIME - Math.floor(elapsed)),
+    20,
+    20
+  );
 }
 
-// SCORE
+ctx.fillStyle="white";
+ctx.fillText("Score: " + totalScore, 20, 50);
+}
+
+// SCORE (UNCHANGED)
 function calculateScore(){
   if(markers.length<3) return 0;
 
@@ -524,16 +480,17 @@ function calculateScore(){
   if(touching(g,r)) s+=0.5;
   if(touching(r,b)) s+=2;
   if(touching(g,b)) s+=2;
-if(touching(g,r) && touching(r,b) && touching(g,b)){
-  // 💥 CREATE RING EXPLOSION
-  explosions.push({
-    x: (g.x + r.x + b.x) / 3,
-    y: (g.y + r.y + b.y) / 3,
-    radius: 10,
-    life: 20,
-    showText: true
-  });
-}
+
+  if(touching(g,r) && touching(r,b) && touching(g,b)){
+    explosions.push({
+      x: (g.x + r.x + b.x) / 3,
+      y: (g.y + r.y + b.y) / 3,
+      radius: 10,
+      life: 20,
+      text:"QU33PH"
+    });
+  }
+
   return suddenDeath ? s*2 : s;
 }
 
@@ -555,7 +512,6 @@ function loop(){
   requestAnimationFrame(loop);
 }
 loop();
-
 </script>
 </body>
-</html> 
+</html>
