@@ -319,12 +319,17 @@ function update(){
     if(Math.abs(m.vx)<0.05 && Math.abs(m.vy)<0.05){
       m.stopped = true;
     }
+    let elapsed = (Date.now() - startTime) / 1000;
+let progress = Math.min(elapsed / TOTAL_TIME, 1);
+
+document.getElementById("progress").style.width = (progress * 100) + "%";
   });
 
   tryAdvanceRound();
   explosions.forEach(e => {
   e.radius += 4;   // expand
   e.life--;
+    console.log(progress);
 });
 
 // remove dead ones
