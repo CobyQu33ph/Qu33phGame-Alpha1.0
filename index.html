@@ -99,10 +99,18 @@ document.getElementById("rotateBtn").onclick = () => {
     "Orientation: " + currentOrientation;
 };
 
-const skipBtn = document.getElementById("skipBtn");
-skipBtn.onpointerdown = () => speedMultiplier = 3;
-skipBtn.onpointerup = () => speedMultiplier = 1;
-skipBtn.onpointerleave = () => speedMultiplier = 1;
+canvas.addEventListener("pointerdown", e=>{
+  if(gameState !== "playing") return;
+
+  // 🔥 SAFE FIX (prevents locked input bug)
+  if(current >= 3 && markers.length === 0) return;
+
+  dragging = true;
+  startX = e.clientX;
+  startY = e.clientY;
+  currentX = startX;
+  currentY = startY;
+});
 
 // INPUT
 let dragging=false,startX,startY,currentX,currentY;
