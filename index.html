@@ -657,10 +657,15 @@ function endGame(){
 randomizeSky();
 
 function loop(){
-  update();
-  draw();
+  try{
+    update();
+    draw();
+  } catch (e){
+    console.log("GAME ERROR:", e);
+  }
   requestAnimationFrame(loop);
 }
+
 loop();
 </script>
 </body>
