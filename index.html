@@ -424,15 +424,32 @@ function draw(){
     ctx.restore();
   }
   explosions.forEach(e => {
+  // draw explosion ring
   ctx.beginPath();
   ctx.arc(e.x, e.y, e.radius, 0, Math.PI * 2);
 
   ctx.strokeStyle = "white";
   ctx.lineWidth = 4;
   ctx.globalAlpha = e.life / 20;
-
   ctx.stroke();
   ctx.globalAlpha = 1;
+
+  // 💥 DRAW "QU33PH" TEXT
+  if (e.showText) {
+    ctx.save();
+
+    // fade with explosion
+    ctx.globalAlpha = e.life / 20;
+
+    ctx.fillStyle = "white";
+    ctx.font = "bold 60px Arial";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    ctx.fillText("QU33PH", e.x, e.y);
+
+    ctx.restore();
+  }
 });
   // MARKERS
   markers.forEach(m=>{
@@ -513,7 +530,8 @@ if(touching(g,r) && touching(r,b) && touching(g,b)){
     x: (g.x + r.x + b.x) / 3,
     y: (g.y + r.y + b.y) / 3,
     radius: 10,
-    life: 20
+    life: 20,
+    showText: true
   });
 }
   return suddenDeath ? s*2 : s;
