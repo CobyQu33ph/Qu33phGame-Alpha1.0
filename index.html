@@ -352,6 +352,23 @@ ctx.globalAlpha = 1;
     ctx.save();
     ctx.translate(m.x,m.y);
     ctx.rotate(m.rotation);
+    if(isTouchingAny(m)){
+  ctx.shadowColor = "lime";
+  ctx.shadowBlur = 25;
+
+  // 💥 IMPACT SPARKS
+  for(let i = 0; i < 3; i++){
+    ctx.fillRect(
+      (Math.random() - 0.5) * 20,
+      (Math.random() - 0.5) * 20,
+      3, 3
+    );
+  }
+
+} else {
+  ctx.shadowColor = "red";
+  ctx.shadowBlur = 15;
+    }
 
     ctx.fillStyle = m.color;
 
