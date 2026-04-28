@@ -529,43 +529,36 @@ function calculateScore(){
 
   let s = 0;
 
+  // detect combos FIRST
+  let gr = touching(g,r);
+  let rb = touching(r,b);
+  let gb = touching(g,b);
+
   if(suddenDeath){
-    // ONLY ONE outcome in sudden death
 
-    if(touching(g,r) && touching(r,b) && touching(g,b)){
-      return 10; // 🔥 full triple override
-
-    } else if(touching(r,b)){
-      return 5;
-
-    } else if(touching(g,b)){
-      return 5;
-
-    } else if(touching(g,r)){
-      return 3;
-
-    } else {
-      return 0;
+    if(gr && rb && gb){
+      return 10;
     }
+
+    if(rb) return 5;
+    if(gb) return 5;
+    if(gr) return 3;
+
+    return 0;
 
   } else {
-    // NORMAL MODE (also non-stacking)
 
-    if(touching(g,r) && touching(r,b) && touching(g,b)){
+    if(gr && rb && gb){
       return 3;
-
-    } else if(touching(r,b)){
-      return 2;
-
-    } else if(touching(g,b)){
-      return 2;
-
-    } else if(touching(g,r)){
-      return 0.5;
-
-    } else {
-      return 0;
     }
+
+    if(rb) return 2;
+    if(gb) return 2;
+    if(gr) return 0.5;
+
+    return 0;
+  }
+}
 // END
 function endGame(){
   if(totalScore > highScore){
