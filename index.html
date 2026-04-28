@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body { margin:0; overflow:hidden; background:#111; }
+canvas { display:block; touch-action:none; }
+
+#rotateBtn {
+  position:absolute;
+  bottom:20px;
+  left:50%;
+  transform:translateX(-50%);
+  padding:12px 20px;
+  border-radius:10px;
+  border:none;
+  font-size:16px;
+  background:#222;
+  color:white;
+}
+</style>
+</head>
+<body>
+
+<canvas id="game"></canvas>
+<button id="rotateBtn">Orientation: vertical</button>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+// LAYOUT
+const LEFT_EDGE = canvas.width * 0.2;
+const RIGHT_WALL = canvas.width * 0.75;
+const END_LINE_Y = canvas.height * 0.2;
+
+// STATE
+let gameState = "playing";
+let markers = [];
+let current = 0;
+let totalScore = 0;
+let highScore = localStorage.getItem("qu33phHigh") || 0;
+
+let startTime = Date.now();
+let suddenDeath = false;
+
+const ROUND_TIME = 30;
+const TOTAL_TIME = 45;
+
+// ORIENTATION
+const orientations = ["vertical","angled","horizontal"];
+let orientationIndex = 0;
+let currentOrientation = "vertical";
+
+document.getElementById("rotateBtn").onclick = () => {
+  orientationIndex = (orientationIndex + 1) % orientations.length;
+  currentOrientation = orientations[orientationIndex];
+  document.getElementById("rotateBtn").innerText =
+    "Orientation: " + currentOrientation;
+};
+
+// INPUT
+let dragging=false,startX,startY,currentX,currentY;
+
+const colors = ["lime","red","blue"];
+const lengths = [60,60,90];
+
+function touching(a,b){
+  return Math.hypot(a.x-b.x,a.y-b.y) < 45;
+}
+
+// =====================
+// THROW
+// =====================
+canvas.addEventListener("pointerdown", e=>{
+  if(gameState !== "playing") return;
+  if(current >= 3) return;
+
+  dragging=true;
+  startX=e.clientX;
+  startY=e.clientY;
+  currentX=startX;
+  currentY=startY;
+});
+
+canvas.addEventListener("pointermove", e=>{
+  if(!dragging) return;
+  currentX=e.clientX;
+  currentY=e.clientY;
+});
+
+canvas.addEventListener("pointerup", ()=>{
+  if(!dragging) return;
+  dragging=false;
+
+  if(current >= 3) return;
+
+  let dx=currentX-startX;
+  let dy=currentY-startY;
+
+  let baseRot =
+    currentOrientation === "vertical" ? 0 :
+    currentOrientation === "angled" ? Math.PI/6 :
+    Math.PI/2;
+
+  markers.push({
+    x:canvas.width/2,
+    y:canvas.height-50,
+    vx:dx*0.2,
+    vy:dy*0.2,
+    curve:dx*0.0003,
+    angleType:currentOrientation,
+    color:colors[current],
+    length:lengths[current],
+    stopped:false,
+    fallen:false,
+    trail:[],
+
+    rotation: baseRot,
+    spinVelocity:
+      currentOrientation === "vertical" ? 0.08 :
+      currentOrientation === "angled" ? 0.12 :
+      0.18,
+
+    // 🪑 CHAIR INTERACTION FLAG
+    chairBoost:false
+  });
+
+  current++;
+});
+
+// =====================
+// ROUND SYSTEM
+// =====================
+function tryAdvanceRound(){
+  if(gameState !== "playing") return;
+
+  if(current === 3 && markers.every(m=>m.stopped || m.fallen)){
+    totalScore += calculateScore();
+    markers = [];
+    current = 0;
+  }
+}
+
+// =====================
+// CLICK CONTROL
+// =====================
+canvas.addEventListener("click", ()=>{
+
+  if(gameState === "end"){
+    gameState = "playing";
+    markers = [];
+    current = 0;
+    totalScore = 0;
+    startTime = Date.now();
+    suddenDeath = false;
+    randomizeSky();
+    return;
+  }
+
+  tryAdvanceRound();
+});
+
+// =====================
+// SKY
+// =====================
+let sunPos={x:0,y:0};
+let clouds=[];
+let skyWindows=[];
+
+function randomizeSky(){
+  let wx = RIGHT_WALL + 10;
+  let ww = canvas.width - RIGHT_WALL - 20;
+
+  sunPos = {
+    x: wx + Math.random()*ww,
+    y: END_LINE_Y + 40 + Math.random()*80
+  };
+
+  clouds=[];
+  skyWindows=[];
+
+  for(let i=0;i<4;i++){
+    clouds.push({
+      x: wx + Math.random()*ww,
+      y: END_LINE_Y + 40 + Math.random()*200
+    });
+  }
+
+  for(let i=0;i<6;i++){
+    skyWindows.push({
+      x: wx + Math.random()*ww,
+      y: END_LINE_Y + 40 + Math.random()*200
+    });
+  }
+}
+
+// =====================
+// UPDATE
+// =====================
+function update(){
+
+  let elapsed = (Date.now()-startTime)/1000;
+
+  if(elapsed > ROUND_TIME && elapsed <= TOTAL_TIME){
+    suddenDeath = true;
+  }
+  if(elapsed > TOTAL_TIME){
+    endGame();
+  }
+
+  markers.forEach(m=>{
+    if(m.stopped||m.fallen) return;
+
+    m.vx += m.curve;
+    m.x += m.vx;
+    m.y += m.vy;
+
+    m.vx *= 0.94;
+    m.vy *= 0.94;
+
+    // spin + friction
+    m.rotation += m.spinVelocity;
+    m.spinVelocity *= 0.96;
+
+    if(Math.abs(m.spinVelocity) < 0.001){
+      m.spinVelocity = 0;
+    }
+
+    // COLLISION WITH CHAIR (1 IN 700)
+    if(suddenDeath && !m.chairBoost){
+      if(Math.random() < 1/700){
+        m.vy -= 8; // launch upward boost
+        m.chairBoost = true;
+      }
+    }
+
+    m.trail.push({x:m.x,y:m.y});
+    if(m.trail.length > 20) m.trail.shift();
+
+    if(m.x < LEFT_EDGE) m.fallen = true;
+
+    if(m.x > RIGHT_WALL){
+      m.x = RIGHT_WALL;
+      m.vx *= -0.4;
+    }
+
+    if(m.y < END_LINE_Y){
+      m.y = END_LINE_Y;
+      m.vy *= -0.2;
+    }
+
+    if(Math.abs(m.vx)<0.05 && Math.abs(m.vy)<0.05){
+      m.stopped = true;
+    }
+  });
+
+  tryAdvanceRound();
+}
+
+// =====================
+// DRAW
+// =====================
+function draw(){
+
+  if(gameState === "end"){
+    ctx.fillStyle="black";
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    ctx.fillStyle="white";
+    ctx.font="60px Arial";
+    ctx.fillText("Qu33ph", canvas.width/2-120, 150);
+
+    ctx.font="30px Arial";
+    ctx.fillText("High Score: " + highScore, canvas.width/2-150, 220);
+
+    ctx.font="20px Arial";
+    ctx.fillText("Tap anywhere to restart", canvas.width/2-140, 300);
+    return;
+  }
+
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  // WALL
+  ctx.fillStyle="#222";
+  ctx.fillRect(RIGHT_WALL,0,canvas.width-RIGHT_WALL,canvas.height);
+
+  // SKY
+  ctx.fillStyle="#6ec6ff";
+  ctx.fillRect(RIGHT_WALL+5, END_LINE_Y, canvas.width-RIGHT_WALL-10, canvas.height-END_LINE_Y);
+
+  // SUN + CLOUDS
+  ctx.fillStyle="yellow";
+  ctx.beginPath();
+  ctx.arc(sunPos.x,sunPos.y,20,0,Math.PI*2);
+  ctx.fill();
+
+  ctx.fillStyle="white";
+  clouds.forEach(c=>{
+    ctx.beginPath();
+    ctx.arc(c.x,c.y,15,0,Math.PI*2);
+    ctx.arc(c.x+20,c.y,20,0,Math.PI*2);
+    ctx.fill();
+  });
+
+  // WINDOWS
+  ctx.fillStyle="rgba(255,255,255,0.25)";
+  skyWindows.forEach(w=>{
+    ctx.fillRect(w.x,w.y,30,20);
+  });
+
+  // WINDOWSILL
+  ctx.fillStyle="#000";
+  ctx.fillRect(RIGHT_WALL, END_LINE_Y, 35, canvas.height-END_LINE_Y);
+
+  // RED DOT
+  ctx.fillStyle="red";
+  ctx.beginPath();
+  ctx.arc(RIGHT_WALL+10, END_LINE_Y+40, 10, 0, Math.PI*2);
+  ctx.fill();
+
+  ctx.fillStyle="white";
+  ctx.fillRect(LEFT_EDGE, END_LINE_Y, RIGHT_WALL-LEFT_EDGE, 4);
+
+  // 🪑 CHAIR (RESTORED)
+  if(suddenDeath){
+    ctx.save();
+    ctx.translate((LEFT_EDGE+RIGHT_WALL)/2, END_LINE_Y + 90);
+    ctx.rotate(Math.PI);
+    ctx.font="30px Arial";
+    ctx.fillText("🪑", -15, 10);
+    ctx.restore();
+  }
+
+  // MARKERS
+  markers.forEach(m=>{
+    if(m.fallen) return;
+
+    ctx.save();
+    ctx.translate(m.x,m.y);
+    ctx.rotate(m.rotation);
+
+    ctx.fillStyle=m.color;
+    ctx.shadowColor="red";
+    ctx.shadowBlur=15;
+
+    ctx.fillRect(-10,-m.length/2,20,m.length);
+
+    ctx.restore();
+  });
+
+  let elapsed = (Date.now()-startTime)/1000;
+
+  ctx.fillStyle="white";
+  ctx.font="20px Arial";
+
+  if(!suddenDeath){
+    ctx.fillText("Time: "+Math.max(0, ROUND_TIME - Math.floor(elapsed)),20,30);
+  } else {
+    ctx.fillStyle="red";
+    ctx.fillText("SUDDEN DEATH: "+Math.max(0, TOTAL_TIME - Math.floor(elapsed)),20,30);
+  }
+
+  ctx.fillStyle="white";
+  ctx.fillText("Score: "+totalScore,20,60);
+}
+
+// SCORE
+function calculateScore(){
+  if(markers.length<3) return 0;
+
+  let [g,r,b] = markers;
+
+  let s=0;
+  if(touching(g,r)) s+=0.5;
+  if(touching(r,b)) s+=2;
+  if(touching(g,b)) s+=2;
+
+  return suddenDeath ? s*2 : s;
+}
+
+// END
+function endGame(){
+  if(totalScore > highScore){
+    highScore = totalScore;
+    localStorage.setItem("qu33phHigh", highScore);
+  }
+  gameState="end";
+}
+
+// INIT
+randomizeSky();
+
+function loop(){
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+loop();
+
+</script>
+</body>
+</html>
