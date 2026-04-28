@@ -341,6 +341,13 @@ function draw(){
   // MARKERS
   markers.forEach(m=>{
     if(m.fallen) return;
+    // 🔥 TRAIL DRAWING
+m.trail.forEach((p,i)=>{
+  ctx.fillStyle = m.color;
+  ctx.globalAlpha = i / m.trail.length; // fade out
+  ctx.fillRect(p.x - 2, p.y - 2, 4, 4);
+});
+ctx.globalAlpha = 1;
 
     ctx.save();
     ctx.translate(m.x,m.y);
