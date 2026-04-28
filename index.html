@@ -83,6 +83,8 @@ let suddenDeath = false;
 let explosions = [];
 let scorePopups = [];
 let lastRoundScore = 0;
+let showNextRoundPrompt = false;
+let promptPulse = 0;
 
 const ROUND_TIME = 30;
 const TOTAL_TIME = 45;
@@ -241,6 +243,14 @@ function tryAdvanceRound(){
 // CLICK CONTROL
 canvas.addEventListener("click", ()=>{
 
+  // 👉 IF PROMPT IS SHOWING, ADVANCE ROUND
+  if(showNextRoundPrompt){
+    showNextRoundPrompt = false;
+    tryAdvanceRound();
+    return;
+  }
+
+  // 👉 END SCREEN RESET
   if(gameState === "end"){
     gameState = "playing";
     markers = [];
@@ -252,9 +262,9 @@ canvas.addEventListener("click", ()=>{
     return;
   }
 
+  // 👉 NORMAL CLICK BEHAVIOR
   tryAdvanceRound();
 });
-
 // SKY (UNCHANGED)
 let sunPos={x:0,y:0};
 let clouds=[];
@@ -297,7 +307,16 @@ function update(){
   }
   if(elapsed > TOTAL_TIME){
     endGame();
+    if(current === 3 && markers.length === 3){
+
+  let allDone = markers.every(m =>
+    m.fallen || (Math.abs(m.vx) < 0.05 && Math.abs(m.vy) < 0.05)
+  );
+
+  if(allDone){
+    showNextRoundPrompt = true;
   }
+    
 
   markers.forEach(m=>{
     if(m.stopped||m.fallen) return;
@@ -405,6 +424,39 @@ scorePopups.forEach(p => {
   ctx.fillText(p.text, p.x, p.y);
 
   ctx.restore();
+  if(showNextRoundPrompt){
+
+  promptPulse += 0.05;
+  let glow = 10 + Math.sin(promptPulse) * 8;
+
+  let x = canvas.width / 2 - 150;
+  let y = canvas.height / 2 + 80;
+  let w = 300;
+  let h = 80;
+
+  ctx.save();
+
+  // glow rectangle
+  ctx.shadowColor = "lime";
+  ctx.shadowBlur = glow;
+  ctx.fillStyle = "rgba(0,255,0,0.15)";
+  ctx.fillRect(x, y, w, h);
+
+  // border
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = "lime";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(x, y, w, h);
+
+  // text
+  ctx.fillStyle = "white";
+  ctx.font = "20px Arial";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("Click here for next round", x + w/2, y + h/2);
+
+  ctx.restore();
+  }
 });
   // SUN
   ctx.fillStyle="yellow";
