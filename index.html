@@ -386,7 +386,15 @@ if(gameState === "playing"){
   ctx.translate(m.x, m.y);
   ctx.rotate(m.rotation);
 
-  ctx.drawImage(img, -25, -25, 50, 50);
+  let w = 50;
+let h = 50;
+
+if (m.color === "blue") {
+  w = 80;
+  h = 50;
+}
+
+ctx.drawImage(img, -w/2, -h/2, w, h);
 
   ctx.restore();
   }
