@@ -2,45 +2,193 @@
 <html>
 <head>
   <link rel="icon" type="image/x-icon" href="favicon.ico">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<style>
-body { margin:0; overflow:hidden; background:#111; }
-canvas { display:block; touch-action:none; }
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { margin:0; overflow:hidden; background:#111; }
+    canvas { display:block; touch-action:none; }
 
-#rotateBtn {
-  position:absolute;
-  bottom:20px;
-  left:50%;
-  transform:translateX(-50%);
-  padding:12px 20px;
-  border-radius:10px;
-  border:none;
-  font-size:16px;
-  background:#222;
-  color:white;
-}
-#timeline {
-  position:absolute;
-  top:10px;
-  left:10%;
-  width:80%;
-  height:6px;
-  background:#333;
-  border-radius:10px;
-  overflow:hidden;
-}
-#progress {
-  height:100%;
-  width:0%;
-  background:lime;
-}
-</style>
+    #rotateBtn {
+      position:absolute;
+      bottom:20px;
+      left:50%;
+      transform:translateX(-50%);
+      padding:12px 20px;
+      border-radius:10px;
+      border:none;
+      font-size:16px;
+      background:#222;
+      color:white;
+    }
+
+    #timeline {
+      position:absolute;
+      top:10px;
+      left:10%;
+      width:80%;
+      height:6px;
+      background:#333;
+      border-radius:10px;
+      overflow:hidden;
+    }
+
+    #progress {
+      height:100%;
+      width:0%;
+      background:lime;
+    }
+  </style>
 </head>
 <body>
 
 <canvas id="game"></canvas>
 <button id="rotateBtn">Orientation: vertical</button>
 <div id="timeline"><div id="progress"></div></div>
+
+<script>
+// ----------------------------
+// STEP 1: Set up canvas
+// ----------------------------
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+// ----------------------------
+// STEP 2: Declare global variables
+// ----------------------------
+let gameState = "playing";   // Game state
+let current = 0;             // Current marker
+let totalScore = 0;          // Score
+let highScore = localStorage.getItem("qu33phHigh") || 0;  // High score
+
+// Colors and marker lengths
+const colors = ["lime", "red", "blue"];
+const lengths = [60, 60, 90];
+
+// Marker positions (starting behind the line)
+let markers = [
+  { color: "lime", x: canvas.width/2 - 60, y: canvas.height - 40, radius: 20, waiting: true },
+  { color: "red", x: canvas.width/2, y: canvas.height - 40, radius: 20, waiting: true },
+  { color: "blue", x: canvas.width/2 + 60, y: canvas.height - 40, radius: 20, waiting: true }
+];
+
+// ----------------------------
+// STEP 3: Input and interactions
+// ----------------------------
+let dragging = false;
+let startX = 0;
+let startY = 0;
+let currentX = 0;
+let currentY = 0;
+
+canvas.addEventListener("pointerdown", e => {
+  if (gameState !== "playing") return;
+  if (current >= 3) return;
+  dragging = true;
+  startX = e.clientX;
+  startY = e.clientY;
+  currentX = startX;
+  currentY = startY;
+});
+
+canvas.addEventListener("pointermove", e => {
+  if (!dragging) return;
+  currentX = e.clientX;
+  currentY = e.clientY;
+});
+
+canvas.addEventListener("pointerup", () => {
+  if (!dragging) return;
+  dragging = false;
+  if (current >= 3) return;
+
+  let dx = currentX - startX;
+  let dy = currentY - startY;
+
+  let baseRot =
+    currentOrientation === "vertical" ? 0 :
+    currentOrientation === "angled" ? Math.PI / 6 :
+    Math.PI / 2;
+
+  let base = markers[current];
+  base.waiting = false;
+
+  markers[current] = {
+    x: base.x,
+    y: base.y,
+    vx: dx * 0.2,
+    vy: dy * 0.2,
+    curve: dx * 0.0003,
+    angleType: currentOrientation,
+    color: colors[current],
+    length: lengths[current],
+    stopped: false,
+    fallen: false,
+    trail: [],
+    rotation: baseRot,
+    spinVelocity:
+      currentOrientation === "vertical" ? 0.08 :
+      currentOrientation === "angled" ? 0.12 :
+      0.18,
+    chairBoost: false,
+    megaTriggered: false,
+    armed: false,
+    life: 0
+  };
+
+  current++;
+});
+
+// ----------------------------
+// STEP 4: Game functions
+// ----------------------------
+// Function for trying to advance round
+function tryAdvanceRound() {
+  if (gameState !== "playing") return;
+  if (current === 3 && markers.every(m => m.stopped || m.fallen)) {
+    let g = markers[0];
+    let r = markers[1];
+    let b = markers[2];
+
+    let roundScore = calculateScore();
+    totalScore += roundScore;
+
+    markers = [];
+    current = 0;
+  }
+}
+
+// ----------------------------
+// STEP 5: Game loop
+// ----------------------------
+function loop() {
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+loop();
+
+// ----------------------------
+// STEP 6: Update function (game state)
+// ----------------------------
+function update() {
+  // Update markers' positions, check for end conditions, etc.
+}
+
+// ----------------------------
+// STEP 7: Draw function (render to screen)
+// ----------------------------
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Drawing code for the game: sky, markers, score, etc.
+}
+
+</script>
+
+</body>
+</html>
 
 <script>
 const canvas = document.getElementById("game");
