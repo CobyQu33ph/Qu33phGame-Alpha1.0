@@ -323,19 +323,16 @@ function update(){
     }
 
   // 💥 PARTICLE BURST
-  for (let i = 0; i < 10; i++) {
-    particles.push({
-      x: m.x,
-      y: m.y,
-      vx: (Math.random() - 0.5) * 4,
-      vy: (Math.random() - 0.5) * 4,
-      life: 30,
-      color: m.color
-      particles.forEach(p => {
-  p.x += p.vx;
-  p.y += p.vy;
-  p.life--;
-});
+for (let i = 0; i < 10; i++) {
+  particles.push({
+    x: m.x,
+    y: m.y,
+    vx: (Math.random() - 0.5) * 4,
+    vy: (Math.random() - 0.5) * 4,
+    life: 30,
+    color: m.color
+  });
+}
 
 particles = particles.filter(p => p.life > 0);
     });
@@ -345,6 +342,13 @@ particles = particles.filter(p => p.life > 0);
     m.vx += m.curve;
     m.x += m.vx * speedMultiplier;
     m.y += m.vy * speedMultiplier;
+particles.forEach(p => {
+  p.x += p.vx;
+  p.y += p.vy;
+  p.life--;
+});
+
+particles = particles.filter(p => p.life > 0);
 
     // ARMING SYSTEM (must enter playfield first)
 if(!m.armed && m.y < START_LINE_Y){
