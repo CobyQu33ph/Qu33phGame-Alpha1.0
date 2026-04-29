@@ -75,6 +75,7 @@ let markers = [];
 let current = 0;
 let totalScore = 0;
 let highScore = localStorage.getItem("qu33phHigh") || 0;
+let chairLocked = false;
 
 let startTime = Date.now();
 let suddenDeath = false;
@@ -318,8 +319,14 @@ function update(){
   let elapsed = (Date.now()-startTime)/1000;
 
   if(elapsed > ROUND_TIME && elapsed <= TOTAL_TIME){
-    suddenDeath = true;
+  suddenDeath = true;
+  chairLocked = true;
   }
+  if(chairLocked){
+  chair.x = (LEFT_EDGE + RIGHT_WALL) / 2;
+  chair.y = END_LINE_Y + 90;
+  }
+  
   if(elapsed > TOTAL_TIME){
     endGame();
   }
@@ -542,8 +549,9 @@ ctx.translate(shakeX, shakeY);
 
   // CHAIR
   if(suddenDeath){
-    ctx.save();
-    ctx.translate(chair.x, chair.y);
+  ctx.save();
+  ctx.setTransform(1,0,0,1,0,0); // cancels any shake transform leakage
+  ctx.translate(chair.x, chair.y);
     ctx.rotate(Math.PI);
     ctx.font="30px Arial";
     ctx.fillText("🪑", -15, 10);
