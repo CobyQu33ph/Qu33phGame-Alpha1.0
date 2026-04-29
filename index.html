@@ -382,16 +382,26 @@ ctx.textAlign = "left";
 ctx.textBaseline = "top";
 
     ctx.fillStyle="white";
-    ctx.font="60px Arial";
-    ctx.fillText("Qu33ph", canvas.width/2-120, 150);
+ctx.fillRect(LEFT_EDGE, END_LINE_Y, RIGHT_WALL-LEFT_EDGE, 4);
 
-    ctx.font="30px Arial";
-    ctx.fillText("High Score: " + highScore, canvas.width/2-150, 220);
+// START LINE
+ctx.fillStyle = "rgba(255,255,255,0.4)";
+ctx.fillRect(LEFT_EDGE, START_LINE_Y, RIGHT_WALL-LEFT_EDGE, 4);
 
-    ctx.font="20px Arial";
-    ctx.fillText("Tap anywhere to restart", canvas.width/2-140, 300);
-    return;
-  }
+// 🔥 SHOW ONLY WHEN READY
+if(current === 3 && markers.every(m => m.stopped || m.fallen)){
+
+  ctx.fillStyle = "white";
+  ctx.font = "bold 24px Arial";   // bigger + bold
+  ctx.textAlign = "center";
+  ctx.textBaseline = "bottom";
+
+  ctx.fillText(
+    "Tap anywhere on field to advance",
+    (LEFT_EDGE + RIGHT_WALL) / 2,
+    END_LINE_Y - 10
+  );
+}
 
   ctx.clearRect(0,0,canvas.width,canvas.height);
 
@@ -446,6 +456,17 @@ scorePopups.forEach(p => {
 
   ctx.fillStyle="white";
   ctx.fillRect(LEFT_EDGE, END_LINE_Y, RIGHT_WALL-LEFT_EDGE, 4);
+
+  ctx.fillStyle = "white";
+ctx.font = "bold 24px Arial";
+ctx.textAlign = "center";
+ctx.textBaseline = "bottom";
+
+ctx.fillText(
+  "Tap anywhere on field to advance",
+  (LEFT_EDGE + RIGHT_WALL) / 2,
+  END_LINE_Y - 8
+);
 
   // START LINE (entry gate)
 ctx.fillStyle = "rgba(255,255,255,0.4)";
