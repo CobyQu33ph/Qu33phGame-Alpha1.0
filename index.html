@@ -525,21 +525,6 @@ ctx.translate(shakeX, shakeY);
   ctx.fillStyle = "rgba(255,255,255,0.4)";
   ctx.fillRect(LEFT_EDGE, START_LINE_Y, RIGHT_WALL-LEFT_EDGE, 4);
 
-  // PREVIEW MARKERS (before throw)
-previewMarkers.forEach((p, i) => {
-  if (p.used) return;
-
-  const img = markerImages[p.color];
-  if (!img || !img.complete) return;
-
-  const spacing = 60;
-  const baseX = (LEFT_EDGE + RIGHT_WALL) / 2;
-
-  const x = baseX + (i - 1) * spacing;
-  const y = START_LINE_Y - 40;
-
-  ctx.drawImage(img, x - 20, y - 20, 40, 40);
-});
 
   // 🔥 SHOW TEXT ONLY WHEN READY
   if(current === 3 && markers.every(m => m.stopped || m.fallen)){
