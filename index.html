@@ -70,9 +70,6 @@ const START_LINE_Y = END_LINE_Y + 60; // ~1 inch-ish depending on screen scale
 // 🔥 ADDED: red dot + chair positions
 const redDot = { x: RIGHT_WALL+10, y: END_LINE_Y+40 };
 const chair = { x:(LEFT_EDGE+RIGHT_WALL)/2, y:END_LINE_Y+90, radius:35 };
-// START LINE (entry gate)
-ctx.fillStyle = "rgba(255,255,255,0.4)";
-ctx.fillRect(LEFT_EDGE, START_LINE_Y, RIGHT_WALL-LEFT_EDGE, 4);
 
 // STATE
 let speedMultiplier = 1;
@@ -196,7 +193,7 @@ canvas.addEventListener("pointerup", ()=>{
     chairBoost:false,
 
     // 🔥 ADDED
-    megaTriggered:false
+    megaTriggered:false,
     armed:false,
   });
 
@@ -449,6 +446,10 @@ scorePopups.forEach(p => {
 
   ctx.fillStyle="white";
   ctx.fillRect(LEFT_EDGE, END_LINE_Y, RIGHT_WALL-LEFT_EDGE, 4);
+
+  // START LINE (entry gate)
+ctx.fillStyle = "rgba(255,255,255,0.4)";
+ctx.fillRect(LEFT_EDGE, START_LINE_Y, RIGHT_WALL-LEFT_EDGE, 4);
 
   // CHAIR
   if(suddenDeath){
