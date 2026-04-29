@@ -323,15 +323,28 @@ function update(){
     }
 
   // 💥 PARTICLE BURST
-for (let i = 0; i < 10; i++) {
-  particles.push({
-    x: m.x,
-    y: m.y,
-    vx: (Math.random() - 0.5) * 4,
-    vy: (Math.random() - 0.5) * 4,
-    life: 30,
-    color: m.color
-  });
+if (m.life >= 1 && !m.stopped) {
+  m.stopped = true;
+  m.vx = 0;
+  m.vy = 0;
+
+  for (let i = 0; i < 10; i++) {
+    particles.forEach(p => {
+  p.x += p.vx;
+  p.y += p.vy;
+  p.life--;
+});
+
+particles = particles.filter(p => p.life > 0);
+    particles.push({
+      x: m.x,
+      y: m.y,
+      vx: (Math.random() - 0.5) * 4,
+      vy: (Math.random() - 0.5) * 4,
+      life: 30,
+      color: m.color
+    });
+  }
 }
 
 particles = particles.filter(p => p.life > 0);
@@ -460,6 +473,8 @@ if(gameState === "playing"){
   ctx.restore();
   }
 function draw(){
+  ctx.fillStyle = "white";
+ctx.fillText("RUNNING", 50, 50);
 
   // END SCREEN
   if(gameState === "end"){
