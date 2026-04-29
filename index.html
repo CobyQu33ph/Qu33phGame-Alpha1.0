@@ -183,7 +183,6 @@ canvas.addEventListener("pointerup", ()=>{
     fallen:false,
     trail:[],
     rotation: baseRot,
-    color: "red",
     spinVelocity:
       currentOrientation === "vertical" ? 0.08 :
       currentOrientation === "angled" ? 0.12 :
@@ -509,29 +508,25 @@ scorePopups.forEach(p => {
 });
 
   // MARKERS
-  markers.forEach(drawMarker);
-    if(m.fallen) return;
+markers.forEach(m => {
+  if (m.fallen) return;
 
-    ctx.save();
-    ctx.translate(m.x,m.y);
-    ctx.rotate(m.rotation);
+  ctx.shadowColor = isTouchingAny(m) ? "lime" : "red";
+  ctx.shadowBlur = 20;
 
-    if(isTouchingAny(m)){
-      ctx.shadowColor = "lime";
-      ctx.shadowBlur = 25;
-    } else {
-      ctx.shadowColor = "red";
-      ctx.shadowBlur = 15;
-    }
+  drawMarker(m);
+
+  ctx.shadowBlur = 0;
+});
 
     function drawMarker(m) {
   const img = markerImages[m.color];
 
-  if (!img || !img.complete) return; // prevents bugs while loading
+  if (!img || !img.complete) return;
 
   ctx.save();
   ctx.translate(m.x, m.y);
-  ctx.rotate(m.angle);
+  ctx.rotate(m.rotation);
 
   ctx.drawImage(img, -25, -25, 50, 50);
 
