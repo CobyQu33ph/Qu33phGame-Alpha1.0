@@ -88,19 +88,23 @@ document.getElementById("rotateBtn").onclick = () => {
     "Orientation: " + currentOrientation;
 };
 
-canvas.addEventListener("pointerdown", e=>{
-  if(gameState !== "playing") return;
+canvas.addEventListener("pointerdown", (e) => {
+  if (gameState !== "playing") return;
 
-  // 🔥 SAFE FIX (prevents locked input bug)
-  if(current >= 3 && markers.length === 0) return;
-
-  dragging = true;
-  startX = e.clientX;
-  startY = e.clientY;
-  currentX = startX;
-  currentY = startY;
+  // Check if the user clicked on a marker
+  for (let i = 0; i < markers.length; i++) {
+    let marker = markers[i];
+    if (Math.hypot(marker.x - e.clientX, marker.y - e.clientY) < 20) {
+      selectedMarker = marker; // Mark the selected marker
+      dragging = true;
+      startX = e.clientX;
+      startY = e.clientY;
+      currentX = startX;
+      currentY = startY;
+      return; // Exit early once we find the marker
+    }
+  }
 });
-
 // INPUT
 let dragging=false,startX,startY,currentX,currentY;
 
@@ -141,15 +145,38 @@ function triggerMegaQu33ph(m){
 // THROW
 
 
-canvas.addEventListener("pointermove", e=>{
-  if(!dragging) return;
-  currentX=e.clientX;
-  currentY=e.clientY;
-});
+canvas.addEventListener("pointermove", (e) => {
+  if (!dragging || !selectedMarker) return;
+  currentX = e.clientX;
+  currentY = e.clientY;
 
-canvas.addEventListener("pointerup", ()=>{
-  if(!dragging) return;
-  dragging=false;
+  // Calculate drag distance
+  let dragDistance = currentY - startY;
+
+  // If dragging, move marker but do not go past the line
+  if (dragDistance < 0) {
+    selectedMarker.y = START_LINE_Y - 30 + dragDistance; // Keep behind the start line
+  }
+
+  // Update starting point for next movement
+  startX = currentX;
+  startY = currentY;
+}}
+                        canvas.addEventListener("pointerup", () => {
+  if (!dragging) return;
+  dragging = false;
+
+  // Calculate velocity based on drag distance
+  let dx = currentX - startX;
+  let dy = currentY - startY;
+
+  if (selectedMarker) {
+    selectedMarker.vx = dx * 0.1;  // Velocity factor
+    selectedMarker.vy = dy * 0.1;  // Velocity factor
+  }
+
+  selectedMarker = null; // Deselect marker
+});
 
   if(current >= 3) return;
 
@@ -161,32 +188,34 @@ canvas.addEventListener("pointerup", ()=>{
     currentOrientation === "angled" ? Math.PI/6 :
     Math.PI/2;
 
-  markers.push({
-  // Set the starting position explicitly here
-  x: LEFT_EDGE + 30,  // Adjust as needed (e.g., 30px from the left edge)
-  y: START_LINE_Y - 30, // Set to just above the start line
-  vx: dx * 0.2,
-  vy: dy * 0.2,
-  curve: dx * 0.0003,
-  angleType: currentOrientation,
-  color: colors[current],
-  length: lengths[current],
-  stopped: false,
-  fallen: false,
-  trail: [],
-  rotation: baseRot,
-  spinVelocity:
-    currentOrientation === "vertical" ? 0.08 :
-    currentOrientation === "angled" ? 0.12 :
-    0.18,
-  chairBoost: false,
+  function createMarker() {
+  const newMarker = {
+    x: LEFT_EDGE + 30,  // Starting position behind the line (left side)
+    y: START_LINE_Y - 30, // Just above the start line
+    vx: 0,  // No velocity initially
+    vy: 0,  // No velocity initially
+    curve: 0,  // No curve initially
+    angleType: currentOrientation,
+    color: colors[current],
+    length: lengths[current],
+    stopped: false,
+    fallen: false,
+    trail: [],
+    rotation: 0,
+    spinVelocity: currentOrientation === "vertical" ? 0.08 : currentOrientation === "angled" ? 0.12 : 0.18,
+    chairBoost: false,
+    megaTriggered: false,
+    armed: false,
+    life: 0
+  };
+  markers.push(newMarker);
+  current++;
+}
 
-  // 🔥 ADDED
-  megaTriggered: false,
-  armed: false,
-
-  life: 0,
-});
+// Create the three markers initially
+for (let i = 0; i < 3; i++) {
+  createMarker();
+}
 
   current++;
 });
